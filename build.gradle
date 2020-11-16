@@ -2,6 +2,12 @@ buildscript {
 	repositories {
 		jcenter()
 		maven { url "https://repo.nallar.me/" }
+		maven { url "https://nexus.breadhub.co.uk/repository/files/" }
+		maven { url "https://nexus.breadhub.co.uk/repository/maven-central/" }
+		maven { url "https://nexus.breadhub.co.uk/repository/maven-public/" }
+		maven { url "https://nexus.breadhub.co.uk/repository/maven-releases/" }
+		maven { url "https://nexus.breadhub.co.uk/repository/maven-snapshots/" }
+		maven { url "https://nexus.breadhub.co.uk/repository/bukkit/" }
 		maven { url "https://plugins.gradle.org/m2/" }
 		maven { url "http://files.minecraftforge.net/maven" }
 	}
@@ -12,21 +18,34 @@ buildscript {
 		classpath 'org.minimallycorrect.gradle:DefaultsPlugin:0.0.28'
 	}
 }
+
+// gradle plugins
+
 apply plugin: 'org.minimallycorrect.gradle.DefaultsPlugin'
 apply plugin: 'org.minimallycorrect.modpatcher.ModPatcherGradle'
 apply plugin: 'org.minimallycorrect.libloader.LibLoaderGradle'
+apply plugin: 'maven-publish'
 
-group = 'org.minimallycorrect.tickthreading'
+// Gradle Configs
+apply from: 'env.gradle'
 
+// minimallyCorrect Defaults
 minimallyCorrectDefaults {
 	minecraft = 1.12
 	fmlCorePlugin = "org.minimallycorrect.tickthreading.mod.TickThreadingCore"
 	fmlCorePluginContainsFmlMod = true
 	labels = ['minecraft-mod', 'threading', 'minecraft', 'java', 'performance']
 	description = "Multi-threaded minecraft. Performance over correctness. What could go wrong?"
-} ()
+}()
 
+
+// variables
 gradle.startParameter.showStacktrace = org.gradle.api.logging.configuration.ShowStacktrace.ALWAYS
+group = 'org.minimallycorrect.tickthreading'
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+// ModPatcher Settings
 
 modpatcher {
 	mixinPackage = "org.minimallycorrect.tickthreading.mixin"
@@ -34,8 +53,8 @@ modpatcher {
 	generateInheritanceHierarchy = true
 }
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+
+// Dependencies
 
 dependencies {
 	testCompile 'junit:junit:4.12'
@@ -45,6 +64,10 @@ dependencies {
 	libLoader "org.minimallycorrect.typedconfig:TypedConfig:0.1-SNAPSHOT"
 	libLoader "org.minimallycorrect.modpatcher:ModPatcher:${minimallyCorrectDefaults.minecraft}-SNAPSHOT"
 }
+
+
+
+// todo cleanup later
 
 if (System.env.GRADLE_USER_HOME) {
 	ext.homeDir = System.env.GRADLE_USER_HOME + '/'
@@ -96,5 +119,23 @@ tasks.withType(JavaCompile) {
 			"-Xlint:-processing"
 		fork = true
 		forkOptions.executable = 'javac'
+	}
+}
+
+publishing {
+	publications {
+		mavenJava(MavenPublication) {
+			artifact jar
+		}
+	}
+
+	repositories {
+		maven {
+			url 'https://nexus.breadhub.co.uk/repository/maven-' + (project.version.endsWith('-SNAPSHOT') ? 'snapshots' : 'releases') + '/'
+			credentials {
+				username project.nexus_username
+				password project.nexus_password
+			}
+		}
 	}
 }
